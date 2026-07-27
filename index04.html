@@ -162,7 +162,7 @@
     // diminutos (~8ms) constantemente; mandar un mensaje WebSocket por cada
     // uno genera mucha sobrecarga y se siente como demora. Acumulamos ~100ms
     // de audio (1600 muestras a 16kHz) antes de enviar cada mensaje.
-    const BATCH_SIZE_SAMPLES = 1600;
+    const BATCH_SIZE_SAMPLES = 800;
     let audioBatch = [];
     let audioBatchLength = 0;
 
