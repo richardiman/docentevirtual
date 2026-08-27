@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title> Richard  Iman | Docente Virtual</title>
+  <style>
+    :root {
+      --primary: #6b21a8;
+      --primary-hover: #581c87;
+      --bg-main: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --radius: 16px;
+      --success: #16a34a;
+      --pending: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    body { background-color: var(--bg-main); color: var(--text-main); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+
+    .app-container { width: 100%; max-width: 600px; background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); padding: 40px 30px; text-align: center; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); }
+
+    .avatar-container { position: relative; width: 140px; height: 140px; margin: 0 auto 20px auto; }
+    .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 4px solid var(--border); transition: all 0.3s ease; }
+    .avatar.speaking { border-color: #22c55e; box-shadow: 0 0 30px rgba(34, 197, 94, 0.6); transform: scale(1.03); }
+
+    h2 { font-size: 22px; color: var(--text-main); margin-bottom: 4px; }
+    .role-title { font-size: 14px; color: var(--primary); font-weight: 600; margin-bottom: 16px; }
+    
+    .status-box { background: #f1f5f9; border-radius: 8px; padding: 12px 16px; font-size: 14px; color: var(--text-muted); margin-bottom: 30px; min-height: 48px; display: flex; align-items: center; justify-content: center; }
+
+    .controls { display: flex; justify-content: center; gap: 16px; }
+    .btn { padding: 14px 28px; border-radius: 30px; border: none; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 8px; }
+    .btn-start { background: var(--primary); color: white; }
+    .btn-start:hover { background: var(--primary-hover); }
+    .btn-end { background: #ef4444; color: white; }
+    .btn-end:hover { background: #dc2626; }
+    .btn-restart { background: var(--text-muted); color: white; margin-top: 16px; }
+    .btn-restart:hover { background: #475569; }
+
+    /* Animación de Carga - Alternativa 3: Línea de Tiempo Conectada */
+    .eval-loading {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 20px;
+      margin-top: 20px;
+      background: #faf5ff;
+      border: 1px solid #f3e8ff;
+      border-radius: var(--radius);
+      animation: fadeIn 0.3s ease;
+    }
+
+    .spinner {
+      width: 38px;
+      height: 38px;
+      border: 3.5px solid rgba(107, 33, 168, 0.15);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 12px;
+    }
+
+    .loading-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 20px;
+    }
+
+    .list-v3 {
+      width: 100%;
+      max-width: 360px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      padding-left: 32px;
+      text-align: left;
+    }
+
+    .list-v3::before {
+      content: '';
+      position: absolute;
+      left: 10px;
+      top: 11px;
+      bottom: 14px;
+      width: 2px;
+      background: #e2e8f0;
+    }
+
+    .item-v3 {
+      position: relative;
+      font-size: 13.5px;
+      padding-bottom: 14px;
+      display: flex;
+      align-items: center;
+      transition: all 0.3s ease;
+    }
+
+    .item-v3:last-child {
+      padding-bottom: 0;
+    }
+
+    .dot-v3 {
+      position: absolute;
+      left: -32px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2px solid var(--pending);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      transition: all 0.3s ease;
+      color: var(--pending);
+    }
+
+    .item-v3.pending { color: var(--pending); font-weight: 500; }
+    .item-v3.active { color: var(--primary); font-weight: 700; transform: translateX(3px); }
+    .item-v3.active .dot-v3 { border-color: var(--primary); background: var(--primary); color: #ffffff; }
+    .item-v3.done { color: var(--success); font-weight: 700; }
+    .item-v3.done .dot-v3 { border-color: var(--success); background: var(--success); color: #ffffff; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Panel de evaluación */
+    .eval-panel { display: none; text-align: left; margin-top: 10px; border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }[cite: 2]
+    .eval-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }[cite: 2]
+    .eval-header-title { font-size: 18px; font-weight: 700; color: var(--text-main); }[cite: 2]
+    .eval-header-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }[cite: 2]
+    .eval-header .score-block { text-align: right; white-space: nowrap; }[cite: 2]
+    .eval-header .score { font-size: 28px; font-weight: 800; color: var(--primary); }[cite: 2]
+    .eval-header .score-max { font-size: 14px; color: var(--text-muted); }[cite: 2]
+
+    .eval-criterio { margin-bottom: 16px; }[cite: 2]
+    .eval-criterio-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }[cite: 2]
+    .eval-criterio-nombre { font-weight: 600; font-size: 14px; color: var(--text-main); }[cite: 2]
+    .eval-criterio-puntaje { font-weight: 700; color: var(--text-main); font-size: 13px; white-space: nowrap; }[cite: 2]
+    .eval-bar-track { background: #e2e8f0; border-radius: 6px; height: 8px; overflow: hidden; margin-bottom: 6px; }[cite: 2]
+    .eval-bar-fill { background: var(--primary); height: 100%; border-radius: 6px; }[cite: 2]
+    .eval-criterio-justif { font-size: 13px; color: var(--text-muted); line-height: 1.4; }[cite: 2]
+
+    .eval-section { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }[cite: 2]
+    .eval-section-title { font-weight: 700; font-size: 14px; color: var(--text-main); margin-bottom: 6px; }[cite: 2]
+    .eval-section p { font-size: 13px; color: var(--text-main); line-height: 1.5; }[cite: 2]
+    .eval-section ul { margin: 6px 0 0 18px; padding: 0; }[cite: 2]
+    .eval-section li { font-size: 13px; color: var(--text-main); line-height: 1.6; }[cite: 2]
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+  <div class="avatar-container">
+    <img id="valeriaAvatar" src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200" class="avatar" alt="Valeria">
+  </div>
+  
+  <h2>Valeria</h2>
+  <p class="role-title">Gerente de Operaciones de Tecnologías</p>
+
+  <div id="callStatus" class="status-box">
+    Presiona "Iniciar Llamada" para comenzar la simulación por voz.
+  </div>
+
+  <div class="controls">
+    <button id="btnStart" class="btn btn-start" onclick="startCall()">🎙️ Iniciar Llamada</button>
+    <button id="btnEnd" class="btn btn-end" onclick="endCall()" style="display:none;">🔴 Finalizar Llamada</button>
+  </div>
+
+  <!-- Contenedor con la Animación 3 -->
+  <div id="evalLoading" class="eval-loading">
+    <div class="spinner"></div>
+    <div class="loading-title">Auditando respuestas...</div>
+    <div class="list-v3" id="listV3"></div>
+  </div>
+
+  <div id="evalPanel" class="eval-panel">
+    <div class="eval-header">
+      <div>
+        <div class="eval-header-title">Evaluación de Desempeño</div>
+        <div class="eval-header-subtitle">Escala Vigesimal (PMBOK / TI)</div>
+      </div>
+      <div class="score-block">
+        <span id="evalNota" class="score">--</span><span class="score-max"> / 20</span>
+      </div>
+    </div>
+    <div id="evalCriterios"></div>
+    <div id="evalExtras"></div>
+    <button class="btn btn-start btn-restart" style="width:100%;" onclick="location.reload()">🔄 Nueva llamada</button>
+  </div>
+</div>
+
+<script>
+  const WS_URL = "wss://servidor-roleplay.onrender.com";
+
+  let ws;
+  let audioCtx;
+  let outputAudioCtx;
+  let mediaStream;
+  let workletNode;
+  let nextPlayTime = 0; // reloj de reproducción: cuándo debe sonar el próximo fragmento[cite: 2]
+  let evalTimeoutId = null; // ID del temporizador de respaldo al finalizar la llamada[cite: 2]
+  let checkTimer = null;
+
+  const criterios = [
+    "1. Seguridad y Liderazgo",
+    "2. Coherencia y Viabilidad",
+    "3. Precisión Técnica (PMBOK / TI)",
+    "4. Estructura y Planificación",
+    "5. Gestión de Stakeholders"
+  ];
+
+  function renderTimeline() {
+    const c = document.getElementById('listV3');
+    c.innerHTML = criterios.map((crit, i) => `
+      <div id="v3-${i}" class="item-v3 pending">
+        <div class="dot-v3" id="v3-dot-${i}"></div>
+        <span>${crit}</span>
+      </div>
+    `).join('');
+  }
+
+  function stepTimeline(index) {
+    if (index > 0) {
+      const prev = index - 1;
+      const prevEl = document.getElementById(`v3-${prev}`);
+      const prevDot = document.getElementById(`v3-dot-${prev}`);
+      if (prevEl && prevDot) {
+        prevEl.className = 'item-v3 done';
+        prevDot.innerHTML = '✓';
+      }
+    }
+
+    if (index < criterios.length) {
+      const currEl = document.getElementById(`v3-${index}`);
+      const currDot = document.getElementById(`v3-dot-${index}`);
+      if (currEl && currDot) {
+        currEl.className = 'item-v3 active';
+        currDot.innerHTML = '•';
+      }
+      checkTimer = setTimeout(() => stepTimeline(index + 1), 1400);
+    }
+  }
+
+  function startTimeline() {
+    if (checkTimer) clearTimeout(checkTimer);
+    renderTimeline();
+    stepTimeline(0);
+  }
+
+  function stopTimeline() {
+    if (checkTimer) {
+      clearTimeout(checkTimer);
+      checkTimer = null;
+    }
+  }
+
+  async function startCall() {
+    const status = document.getElementById('callStatus');
+    status.innerText = "Conectando con el servidor...";[cite: 2]
+    nextPlayTime = 0;[cite: 2]
+
+    // IMPORTANTE para móviles (especialmente iOS Safari): los AudioContext[cite: 2]
+    // deben crearse y activarse dentro del gesto de toque del usuario (este[cite: 2]
+    // clic), antes de cualquier "await". Si se crean más tarde (p.ej. dentro[cite: 2]
+    // de una función async llamada después de esperar el WebSocket), el[cite: 2]
+    // navegador ya no lo reconoce como parte de la interacción del usuario[cite: 2]
+    // y bloquea el audio en silencio, sin mostrar ningún error.[cite: 2]
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });[cite: 2]
+    outputAudioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });[cite: 2]
+    try {
+      if (audioCtx.state === 'suspended') await audioCtx.resume();[cite: 2]
+      if (outputAudioCtx.state === 'suspended') await outputAudioCtx.resume();[cite: 2]
+    } catch (e) {
+      console.error('No se pudo activar el audio:', e);[cite: 2]
+    }
+
+    try {
+      ws = new WebSocket(WS_URL);[cite: 2]
+
+      ws.onopen = async () => {
+        status.innerText = "🟢 Llamada activa. Habla por el micrófono...";[cite: 2]
+        document.getElementById('btnStart').style.display = 'none';[cite: 2]
+        document.getElementById('btnEnd').style.display = 'inline-flex';[cite: 2]
+        await initAudioCapture();[cite: 2]
+      };
+
+      ws.onmessage = async (event) => {
+        try {
+          const data = JSON.parse(event.data);[cite: 2]
+
+          if (data.type === 'evaluation') {[cite: 2]
+            if (evalTimeoutId) { clearTimeout(evalTimeoutId); evalTimeoutId = null; }[cite: 2]
+            stopTimeline();
+            mostrarEvaluacion(data.data);[cite: 2]
+            return;[cite: 2]
+          }
+          if (data.type === 'evaluation_error') {[cite: 2]
+            if (evalTimeoutId) { clearTimeout(evalTimeoutId); evalTimeoutId = null; }[cite: 2]
+            stopTimeline();
+            mostrarErrorEvaluacion(data.message);[cite: 2]
+            return;[cite: 2]
+          }
+
+          if (data.serverContent && data.serverContent.modelTurn) {[cite: 2]
+            const parts = data.serverContent.modelTurn.parts;[cite: 2]
+            for (let part of parts) {[cite: 2]
+              if (part.inlineData && part.inlineData.mimeType.startsWith("audio/")) {[cite: 2]
+                playBase64Pcm(part.inlineData.data);[cite: 2]
+              }
+            }
+          }
+        } catch(e) {
+          console.error("No se pudo interpretar el mensaje del servidor:", e, event.data);[cite: 2]
+        }
+      };
+
+      ws.onerror = (err) => {
+        console.error("Error WebSocket:", err);[cite: 2]
+        status.innerText = "❌ Error al conectar con el servidor.";[cite: 2]
+      };
+
+      ws.onclose = (e) => {
+        console.log("WebSocket cerrado. Código:", e.code, "Razón:", e.reason);[cite: 2]
+        if (evalTimeoutId) { clearTimeout(evalTimeoutId); evalTimeoutId = null; }[cite: 2]
+        stopTimeline();
+        // Si la llamada terminó por el flujo normal (el usuario presionó[cite: 2]
+        // "Finalizar Llamada"), la evaluación ya se maneja en endCall()/[cite: 2]
+        // mostrarEvaluacion() y no hay que hacer nada más aquí.[cite: 2]
+        // Esto solo cubre un cierre inesperado (p.ej. se cayó la conexión)[cite: 2]
+        // mientras la llamada seguía activa.[cite: 2]
+        const evalVisible = document.getElementById('evalPanel').style.display === 'block';[cite: 2]
+        const stillInCall = document.getElementById('btnEnd').style.display !== 'none';[cite: 2]
+        if (!evalVisible && stillInCall) {[cite: 2]
+          document.getElementById('evalLoading').style.display = 'none';[cite: 2]
+          document.getElementById('callStatus').innerText = "Se perdió la conexión. Llamada finalizada.";[cite: 2]
+          document.getElementById('btnStart').style.display = 'inline-flex';[cite: 2]
+          document.getElementById('btnEnd').style.display = 'none';[cite: 2]
+          if (workletNode) workletNode.disconnect();[cite: 2]
+          if (mediaStream) mediaStream.getTracks().forEach(track => track.stop());[cite: 2]
+          if (outputAudioCtx && outputAudioCtx.state !== 'closed') outputAudioCtx.close();[cite: 2]
+          if (audioCtx && audioCtx.state !== 'closed') audioCtx.close();[cite: 2]
+        }
+      };
+
+    } catch (e) {
+      console.error(e);[cite: 2]
+      status.innerText = "❌ Error al iniciar audio.";[cite: 2]
+    }
+  }
+
+  async function initAudioCapture() {
+    // audioCtx y outputAudioCtx ya fueron creados y activados en startCall(),[cite: 2]
+    // dentro del gesto de clic del usuario (necesario para móviles/iOS).[cite: 2]
+
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });[cite: 2]
+    const source = audioCtx.createMediaStreamSource(mediaStream);[cite: 2]
+
+    // AudioWorklet dinámico en línea para evitar dependencias de archivos externos[cite: 2]
+    const workletCode = `
+      class RecorderProcessor extends AudioWorkletProcessor {
+        process(inputs, outputs, parameters) {
+          const input = inputs[0];
+          if (input && input.length > 0) {
+            const float32Data = input[0];
+            this.port.postMessage(float32Data);
+          }
+          return true;
+        }
+      }
+      registerProcessor('recorder-processor', RecorderProcessor);
+    `;[cite: 2]
+
+    const blob = new Blob([workletCode], { type: 'application/javascript' });[cite: 2]
+    const workletUrl = URL.createObjectURL(blob);[cite: 2]
+    await audioCtx.audioWorklet.addModule(workletUrl);[cite: 2]
+
+    workletNode = new AudioWorkletNode(audioCtx, 'recorder-processor');[cite: 2]
+    
+    // Agrupamos el audio antes de enviarlo. El AudioWorklet entrega bloques[cite: 2]
+    // diminutos (~8ms) constantemente; mandar un mensaje WebSocket por cada[cite: 2]
+    // uno genera mucha sobrecarga y se siente como demora. Acumulamos ~100ms[cite: 2]
+    // de audio (1600 muestras a 16kHz) antes de enviar cada mensaje.[cite: 2]
+    const BATCH_SIZE_SAMPLES = 1600;[cite: 2]
+    let audioBatch = [];[cite: 2]
+    let audioBatchLength = 0;[cite: 2]
+
+    workletNode.port.onmessage = (e) => {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;[cite: 2]
+      audioBatch.push(e.data);[cite: 2]
+      audioBatchLength += e.data.length;[cite: 2]
+
+      if (audioBatchLength >= BATCH_SIZE_SAMPLES) {[cite: 2]
+        const merged = new Float32Array(audioBatchLength);[cite: 2]
+        let offset = 0;[cite: 2]
+        for (const chunk of audioBatch) {[cite: 2]
+          merged.set(chunk, offset);[cite: 2]
+          offset += chunk.length;[cite: 2]
+        }
+        audioBatch = [];[cite: 2]
+        audioBatchLength = 0;[cite: 2]
+
+        const pcm16 = convertFloat32ToPCM16(merged);[cite: 2]
+        const base64Audio = arrayBufferToBase64(pcm16.buffer);[cite: 2]
+
+        const payload = {
+          realtimeInput: {
+            audio: { mimeType: "audio/pcm;rate=16000", data: base64Audio }[cite: 2]
+          }
+        };[cite: 2]
+        ws.send(JSON.stringify(payload));[cite: 2]
+      }
+    };
+
+    source.connect(workletNode);[cite: 2]
+    // NOTA: no conectamos workletNode a audioCtx.destination.[cite: 2]
+    // Hacerlo reproducía tu propio micrófono por los parlantes en tiempo real,[cite: 2]
+    // lo cual puede sumarse al ruido/eco que escuchabas. Un GainNode en 0[cite: 2]
+    // mantiene el grafo de audio "vivo" (necesario en algunos navegadores)[cite: 2]
+    // sin que se escuche nada.[cite: 2]
+    const silentSink = audioCtx.createGain();[cite: 2]
+    silentSink.gain.value = 0;[cite: 2]
+    workletNode.connect(silentSink);[cite: 2]
+    silentSink.connect(audioCtx.destination);[cite: 2]
+  }
+
+  function playBase64Pcm(base64Data) {
+    const avatar = document.getElementById('valeriaAvatar');[cite: 2]
+    avatar.classList.add('speaking');[cite: 2]
+
+    const binary = atob(base64Data);[cite: 2]
+    const bytes = new Uint8Array(binary.length);[cite: 2]
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);[cite: 2]
+    
+    const int16Array = new Int16Array(bytes.buffer);[cite: 2]
+    const float32Array = new Float32Array(int16Array.length);[cite: 2]
+    for (let i = 0; i < int16Array.length; i++) float32Array[i] = int16Array[i] / 32768.0;[cite: 2]
+
+    const buffer = outputAudioCtx.createBuffer(1, float32Array.length, 24000);[cite: 2]
+    buffer.getChannelData(0).set(float32Array);[cite: 2]
+
+    const source = outputAudioCtx.createBufferSource();[cite: 2]
+    source.buffer = buffer;[cite: 2]
+    source.connect(outputAudioCtx.destination);[cite: 2]
+
+    // Encolar el fragmento para que empiece justo cuando termine el anterior,[cite: 2]
+    // en vez de que todos arranquen al mismo tiempo (eso era el "ruido de radio").[cite: 2]
+    const now = outputAudioCtx.currentTime;[cite: 2]
+    if (nextPlayTime < now) nextPlayTime = now;[cite: 2]
+    source.start(nextPlayTime);[cite: 2]
+    nextPlayTime += buffer.duration;[cite: 2]
+
+    // Quitar el efecto visual "hablando" cuando termine de sonar este fragmento[cite: 2]
+    source.onended = () => {
+      if (outputAudioCtx.currentTime >= nextPlayTime - 0.05) {[cite: 2]
+        avatar.classList.remove('speaking');[cite: 2]
+      }
+    };
+  }
+
+  function convertFloat32ToPCM16(buffer) {
+    let l = buffer.length;[cite: 2]
+    let buf = new Int16Array(l);[cite: 2]
+    while (l--) buf[l] = Math.max(-1, Math.min(1, buffer[l])) * 0x7FFF;[cite: 2]
+    return buf;[cite: 2]
+  }
+
+  function arrayBufferToBase64(buffer) {
+    let binary = '';[cite: 2]
+    let bytes = new Uint8Array(buffer);[cite: 2]
+    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);[cite: 2]
+    return window.btoa(binary);[cite: 2]
+  }
+
+  function endCall() {
+    // Detenemos la captura de audio y el micrófono de inmediato...[cite: 2]
+    if (workletNode) workletNode.disconnect();[cite: 2]
+    if (mediaStream) mediaStream.getTracks().forEach(track => track.stop());[cite: 2]
+    if (outputAudioCtx && outputAudioCtx.state !== 'closed') outputAudioCtx.close();[cite: 2]
+    if (audioCtx && audioCtx.state !== 'closed') audioCtx.close();[cite: 2]
+    nextPlayTime = 0;[cite: 2]
+
+    document.getElementById('btnEnd').style.display = 'none';[cite: 2]
+    document.getElementById('valeriaAvatar').classList.remove('speaking');[cite: 2]
+
+    // ...pero NO cerramos el WebSocket todavía: le pedimos al servidor que[cite: 2]
+    // genere la evaluación con la transcripción acumulada, y esperamos su[cite: 2]
+    // respuesta antes de cerrar la conexión de verdad.[cite: 2]
+    if (ws && ws.readyState === WebSocket.OPEN) {[cite: 2]
+      document.getElementById('callStatus').innerText = "Llamada finalizada. Generando evaluación...";[cite: 2]
+      document.getElementById('evalLoading').style.display = 'flex';
+      startTimeline();
+      ws.send(JSON.stringify({ type: 'end_call_request' }));[cite: 2]
+
+      // Si el servidor no responde en 30s (p.ej. cayó la conexión), no dejamos[cite: 2]
+      // al usuario esperando para siempre. Guardamos el ID para poder[cite: 2]
+      // cancelarlo en cuanto llegue una respuesta real del servidor.[cite: 2]
+      evalTimeoutId = setTimeout(() => {[cite: 2]
+        if (ws && ws.readyState === WebSocket.OPEN) {[cite: 2]
+          stopTimeline();
+          mostrarErrorEvaluacion('El servidor tardó demasiado en responder.');[cite: 2]
+          ws.close();[cite: 2]
+        }
+      }, 30000);[cite: 2]
+    } else {
+      document.getElementById('callStatus').innerText = "Llamada finalizada.";[cite: 2]
+      document.getElementById('btnStart').style.display = 'inline-flex';[cite: 2]
+    }
+  }
+
+  function mostrarEvaluacion(evaluacion) {
+    stopTimeline();
+    document.getElementById('evalLoading').style.display = 'none';[cite: 2]
+    document.getElementById('callStatus').innerText = "Llamada finalizada. Esta es tu evaluación:";[cite: 2]
+
+    document.getElementById('evalNota').innerText = evaluacion.notaFinal;[cite: 2]
+
+    const cont = document.getElementById('evalCriterios');[cite: 2]
+    cont.innerHTML = '';[cite: 2]
+    evaluacion.criterios.forEach((c, i) => {[cite: 2]
+      const pct = Math.round((c.puntaje / 10) * 100);[cite: 2]
+      const div = document.createElement('div');[cite: 2]
+      div.className = 'eval-criterio';[cite: 2]
+      div.innerHTML = `
+        <div class="eval-criterio-header">
+          <span class="eval-criterio-nombre">${i + 1}. ${escapeHtml(c.nombre)}</span>
+          <span class="eval-criterio-puntaje">${c.puntaje.toFixed(1)} / 10</span>
+        </div>
+        <div class="eval-bar-track"><div class="eval-bar-fill" style="width:${pct}%;"></div></div>
+        <div class="eval-criterio-justif">${escapeHtml(c.justificacion || '')}</div>
+      `;[cite: 2]
+      cont.appendChild(div);[cite: 2]
+    });
+
+    const extras = document.getElementById('evalExtras');[cite: 2]
+    extras.innerHTML = '';[cite: 2]
+
+    if (evaluacion.diagnostico_general) {[cite: 2]
+      extras.innerHTML += `
+        <div class="eval-section">
+          <div class="eval-section-title">Diagnóstico General</div>
+          <p>${escapeHtml(evaluacion.diagnostico_general)}</p>
+        </div>
+      `;[cite: 2]
+    }
+
+    if (Array.isArray(evaluacion.recomendaciones_clave) && evaluacion.recomendaciones_clave.length) {[cite: 2]
+      const items = evaluacion.recomendaciones_clave.map(r => `<li>${escapeHtml(r)}</li>`).join('');[cite: 2]
+      extras.innerHTML += `
+        <div class="eval-section">
+          <div class="eval-section-title">Recomendaciones Clave</div>
+          <ul>${items}</ul>
+        </div>
+      `;[cite: 2]
+    }
+
+    document.getElementById('evalPanel').style.display = 'block';[cite: 2]
+  }
+
+  function mostrarErrorEvaluacion(mensaje) {
+    stopTimeline();
+    document.getElementById('evalLoading').style.display = 'none';[cite: 2]
+    document.getElementById('callStatus').innerText = "Llamada finalizada.";[cite: 2]
+    document.getElementById('evalNota').innerText = '--';[cite: 2]
+    document.getElementById('evalCriterios').innerHTML =
+      `<div class="eval-criterio" style="color:#ef4444;">⚠️ No se pudo generar la evaluación: ${escapeHtml(mensaje)}</div>`;[cite: 2]
+    document.getElementById('evalExtras').innerHTML = '';[cite: 2]
+    document.getElementById('evalPanel').style.display = 'block';[cite: 2]
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');[cite: 2]
+    div.innerText = str;[cite: 2]
+    return div.innerHTML;[cite: 2]
+  }
+</script>
+
+</body>
+</html>
