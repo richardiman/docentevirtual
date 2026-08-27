@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Richard Iman | Docente Virtual</title>
+  <style>
+    :root {
+      --primary: #6b21a8;
+      --primary-hover: #581c87;
+      --bg-main: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    body { background-color: var(--bg-main); color: var(--text-main); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+
+    .app-container { width: 100%; max-width: 650px; background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); padding: 40px 30px; text-align: center; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); }
+    .avatar-container { position: relative; width: 130px; height: 130px; margin: 0 auto 15px auto; }
+    .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 4px solid var(--border); transition: all 0.3s ease; }
+    .avatar.speaking { border-color: #22c55e; box-shadow: 0 0 25px rgba(34, 197, 94, 0.6); transform: scale(1.03); }
+
+    h2 { font-size: 22px; color: var(--text-main); margin-bottom: 4px; }
+    .role-title { font-size: 14px; color: var(--primary); font-weight: 600; margin-bottom: 16px; }
+    .status-box { background: #f1f5f9; border-radius: 8px; padding: 12px 16px; font-size: 14px; color: var(--text-muted); margin-bottom: 24px; min-height: 48px; display: flex; align-items: center; justify-content: center; }
+
+    .controls { display: flex; justify-content: center; gap: 16px; margin-bottom: 20px; }
+    .btn { padding: 12px 26px; border-radius: 30px; border: none; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 8px; }
+    .btn-start { background: var(--primary); color: white; }
+    .btn-start:hover { background: var(--primary-hover); }
+    .btn-end { background: #ef4444; color: white; }
+    .btn-end:hover { background: #dc2626; }
+
+    /* Tarjeta de Reporte */
+    .report-card { display: none; text-align: left; background: #ffffff; border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-top: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+    .report-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 16px; }
+    .final-score { font-size: 24px; font-weight: 800; color: var(--primary); }
+    .rubric-item { margin-bottom: 14px; }
+    .rubric-title { font-size: 13px; font-weight: 700; color: #334155; display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .bar-bg { background: #e2e8f0; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 4px; }
+    .bar-fill { background: var(--primary); height: 100%; width: 0%; transition: width 0.8s ease-in-out; }
+    .rubric-feedback { font-size: 12px; color: #64748b; line-height: 1.4; }
+    .recommendations-list { padding-left: 18px; font-size: 13px; color: #475569; margin-top: 8px; }
+    .recommendations-list li { margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+  <div class="avatar-container">
+    <img id="valeriaAvatar" src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200" class="avatar" alt="Valeria">
+  </div>
+  
+  <h2>Valeria</h2>
+  <p class="role-title">Gerente de Operaciones de TI</p>
+
+  <div id="callStatus" class="status-box">
+    Presiona "Iniciar Llamada" para comenzar la simulación por voz.
+  </div>
+
+  <div class="controls">
+    <button id="btnStart" class="btn btn-start" onclick="startCall()">🎙️ Iniciar Llamada</button>
+    <button id="btnEnd" class="btn btn-end" onclick="endCall()" style="display:none;">🔴 Finalizar Llamada</button>
+  </div>
+
+  <!-- TARJETA DE EVALUACIÓN RESULTANTE -->
+  <div id="evaluationReport" class="report-card">
+    <div class="report-header">
+      <div>
+        <h3 style="font-size: 16px; color: #0f172a;">Evaluación de Desempeño</h3>
+        <p style="font-size: 12px; color: #64748b;">Escala Vigesimal (PMBOK / TI)</p>
+      </div>
+      <div class="final-score" id="scoreDisplay">--/20</div>
+    </div>
+
+    <div id="rubricsContainer"></div>
+
+    <div style="margin-top: 16px; border-top: 1px solid #f1f5f9; padding-top: 12px;">
+      <h4 style="font-size: 13px; color: #334155; margin-bottom: 4px;">Diagnóstico General:</h4>
+      <p id="summaryDisplay" style="font-size: 13px; color: #475569; line-height: 1.4;"></p>
+    </div>
+
+    <div style="margin-top: 12px;">
+      <h4 style="font-size: 13px; color: #334155; margin-bottom: 4px;">Recomendaciones Clave:</h4>
+      <ul id="recommendationsDisplay" class="recommendations-list"></ul>
+    </div>
+  </div>
+</div>
+
+<script>
+  const WS_URL = "wss://servidor-roleplay.onrender.com";
+
+  let ws;
+  let audioCtx;
+  let outputAudioCtx;
+  let mediaStream;
+  let workletNode;
+  let nextPlayTime = 0;
+
+  async function startCall() {
+    const status = document.getElementById('callStatus');
+    document.getElementById('evaluationReport').style.display = 'none';
+    status.innerText = "Conectando con el servidor...";
+    nextPlayTime = 0;
+
+    try {
+      ws = new WebSocket(WS_URL);
+
+      ws.onopen = async () => {
+        status.innerText = "🟢 Llamada activa. Habla por el micrófono...";
+        document.getElementById('btnStart').style.display = 'none';
+        document.getElementById('btnEnd').style.display = 'inline-flex';
+        await initAudioCapture();
+      };
+
+      ws.onmessage = async (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          
+          if (data.type === 'EVALUATION_STARTING') {
+            status.innerText = "⏳ Evaluando tu desempeño con las rúbricas...";
+          }
+
+          if (data.type === 'EVALUATION_RESULT') {
+            renderReport(data.data);
+            status.innerText = "✅ Evaluación completada.";
+            if (ws) ws.close();
+          }
+
+          if (data.serverContent && data.serverContent.modelTurn) {
+            const parts = data.serverContent.modelTurn.parts;
+            for (let part of parts) {
+              if (part.inlineData && part.inlineData.mimeType.startsWith("audio/")) {
+                playBase64Pcm(part.inlineData.data);
+              }
+            }
+          }
+        } catch(e) {
+          console.error("Error WebSocket Message:", e);
+        }
+      };
+
+      ws.onerror = (err) => {
+        console.error("Error WebSocket:", err);
+        status.innerText = "❌ Error al conectar con el servidor.";
+      };
+
+      ws.onclose = () => {
+        cleanupAudio();
+      };
+
+    } catch (e) {
+      console.error(e);
+      status.innerText = "❌ Error al iniciar audio.";
+    }
+  }
+
+  async function initAudioCapture() {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+    outputAudioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+    
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+    if (outputAudioCtx.state === 'suspended') await outputAudioCtx.resume();
+
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    const source = audioCtx.createMediaStreamSource(mediaStream);
+
+    const workletCode = `
+      class RecorderProcessor extends AudioWorkletProcessor {
+        process(inputs) {
+          const input = inputs[0];
+          if (input && input.length > 0) {
+            this.port.postMessage(input[0]);
+          }
+          return true;
+        }
+      }
+      registerProcessor('recorder-processor', RecorderProcessor);
+    `;
+
+    const blob = new Blob([workletCode], { type: 'application/javascript' });
+    const workletUrl = URL.createObjectURL(blob);
+    await audioCtx.audioWorklet.addModule(workletUrl);
+
+    workletNode = new AudioWorkletNode(audioCtx, 'recorder-processor');
+    
+    const BATCH_SIZE_SAMPLES = 1600;
+    let audioBatch = [];
+    let audioBatchLength = 0;
+
+    workletNode.port.onmessage = (e) => {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      audioBatch.push(e.data);
+      audioBatchLength += e.data.length;
+
+      if (audioBatchLength >= BATCH_SIZE_SAMPLES) {
+        const merged = new Float32Array(audioBatchLength);
+        let offset = 0;
+        for (const chunk of audioBatch) {
+          merged.set(chunk, offset);
+          offset += chunk.length;
+        }
+        audioBatch = [];
+        audioBatchLength = 0;
+
+        const pcm16 = convertFloat32ToPCM16(merged);
+        const base64Audio = arrayBufferToBase64(pcm16.buffer);
+
+        const payload = {
+          realtimeInput: {
+            audio: { mimeType: "audio/pcm;rate=16000", data: base64Audio }
+          }
+        };
+        ws.send(JSON.stringify(payload));
+      }
+    };
+
+    source.connect(workletNode);
+    const silentSink = audioCtx.createGain();
+    silentSink.gain.value = 0;
+    workletNode.connect(silentSink);
+    silentSink.connect(audioCtx.destination);
+  }
+
+  function playBase64Pcm(base64Data) {
+    const avatar = document.getElementById('valeriaAvatar');
+    avatar.classList.add('speaking');
+
+    const binary = atob(base64Data);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    
+    const int16Array = new Int16Array(bytes.buffer);
+    const float32Array = new Float32Array(int16Array.length);
+    for (let i = 0; i < int16Array.length; i++) float32Array[i] = int16Array[i] / 32768.0;
+
+    const buffer = outputAudioCtx.createBuffer(1, float32Array.length, 24000);
+    buffer.getChannelData(0).set(float32Array);
+
+    const source = outputAudioCtx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(outputAudioCtx.destination);
+
+    const now = outputAudioCtx.currentTime;
+    if (nextPlayTime < now) nextPlayTime = now;
+    source.start(nextPlayTime);
+    nextPlayTime += buffer.duration;
+
+    source.onended = () => {
+      if (outputAudioCtx.currentTime >= nextPlayTime - 0.05) {
+        avatar.classList.remove('speaking');
+      }
+    };
+  }
+
+  function convertFloat32ToPCM16(buffer) {
+    let l = buffer.length;
+    let buf = new Int16Array(l);
+    while (l--) buf[l] = Math.max(-1, Math.min(1, buffer[l])) * 0x7FFF;
+    return buf;
+  }
+
+  function arrayBufferToBase64(buffer) {
+    let binary = '';
+    let bytes = new Uint8Array(buffer);
+    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+    return window.btoa(binary);
+  }
+
+  function endCall() {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'END_CALL_REQUEST' }));
+    }
+    // Detiene el micrófono sin cerrar el WebSocket para poder recibir el JSON del reporte
+    if (workletNode) workletNode.disconnect();
+    if (mediaStream) mediaStream.getTracks().forEach(track => track.stop());
+
+    document.getElementById('callStatus').innerText = "⏳ Generando evaluación detallada...";
+    document.getElementById('btnStart').style.display = 'inline-flex';
+    document.getElementById('btnEnd').style.display = 'none';
+    document.getElementById('valeriaAvatar').classList.remove('speaking');
+  }
+
+  function cleanupAudio() {
+    if (outputAudioCtx && outputAudioCtx.state !== 'closed') outputAudioCtx.close();
+    if (audioCtx && audioCtx.state !== 'closed') audioCtx.close();
+    nextPlayTime = 0;
+  }
+
+  function renderReport(data) {
+    if (!data || !data.rubricas) return;
+    const reportCard = document.getElementById('evaluationReport');
+    const rubricsContainer = document.getElementById('rubricsContainer');
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const summaryDisplay = document.getElementById('summaryDisplay');
+    const recsDisplay = document.getElementById('recommendationsDisplay');
+
+    scoreDisplay.innerText = `${data.notaFinalSobre20.toFixed(1)} / 20`;
+    summaryDisplay.innerText = data.resumenDesempeno || "Evaluación finalizada.";
+
+    const titles = {
+      seguridadLiderazgo: "1. Seguridad y Liderazgo",
+      coherenciaViabilidad: "2. Coherencia y Viabilidad",
+      precisionTecnica: "3. Precisión Técnica y Terminología",
+      estructuraPlanificacion: "4. Estructura y Planificación",
+      gestionStakeholders: "5. Gestión de Impacto y Stakeholders"
+    };
+
+    rubricsContainer.innerHTML = '';
+    for (const [key, val] of Object.entries(data.rubricas)) {
+      const percentage = Math.min(100, Math.max(0, (val.puntaje / 10) * 100));
+      const html = `
+        <div class="rubric-item">
+          <div class="rubric-title">
+            <span>${titles[key] || key}</span>
+            <span>${val.puntaje.toFixed(1)} / 10</span>
+          </div>
+          <div class="bar-bg">
+            <div class="bar-fill" style="width: ${percentage}%"></div>
+          </div>
+          <div class="rubric-feedback">${val.feedback}</div>
+        </div>
+      `;
+      rubricsContainer.insertAdjacentHTML('beforeend', html);
+    }
+
+    recsDisplay.innerHTML = '';
+    if (Array.isArray(data.recomendaciones)) {
+      data.recomendaciones.forEach(rec => {
+        const li = document.createElement('li');
+        li.innerText = rec;
+        recsDisplay.appendChild(li);
+      });
+    }
+
+    reportCard.style.display = 'block';
+  }
+</script>
+
+</body>
+</html>
